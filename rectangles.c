@@ -12,9 +12,11 @@
 #define GRID_H (int) (SCREEN_W / TILESIZE);
 #define GRID_W (int) (SCREEN_H / TILESIZE);
 
+const Rectangle EMPTY_RECT = (Rectangle) {0, 0, 0, 0};
+
 Rectangle rectangles[RECT_COUNT];
 
-int draw_grid() {
+void draw_grid() {
     // vertical lines
     for (int x = 0; x < SCREEN_W; x += TILESIZE) {
         DrawLine(x, 0, x, SCREEN_H, DARKGRAY);
@@ -30,14 +32,6 @@ int rect_valid(Rectangle rect) {
 }
 
 
-int draw_rectangles() {
-    for (int i = 0; i < RECT_COUNT; i++) {
-        Rectangle rectangle = rectangles[i];
-        if (rect_valid(rectangle)) {
-            DrawRectangleRec(rectangle, DARKGRAY);
-        }
-    }
-}
 
 int rects_touch_y(Rectangle rect_a, Rectangle rect_b) {
     return rect_a.x == rect_b.x && rect_a.width == rect_b.width &&
@@ -51,10 +45,8 @@ int rects_touch_x(Rectangle rect_a, Rectangle rect_b) {
             rect_b.x == rect_a.x + rect_a.width);
 }
 
-
-int draw_optimised_rectangles() {
-    Rectangle *optimised = malloc(sizeof(Rectangle) * RECT_COUNT);
-    int index = 0;
+void optimise_rectangles(Rectangle* rectangles, Rectangle *optimised) {
+    Rectangle rect_a, rect_b;
 
     // copy rectangles to optimised
 
@@ -64,8 +56,6 @@ int draw_optimised_rectangles() {
             optimised[i] = rectangle;
         }
     }
-
-    Rectangle rect_a, rect_b;
 
     // merge rectangles in x direction
 
@@ -99,16 +89,33 @@ int draw_optimised_rectangles() {
               }
             }
     }
+}
+
+void draw_rectangles() {
+    for (int i = 0; i < RECT_COUNT; i++) {
+        Rectangle rectangle = rectangles[i];
+        if (rect_valid(rectangle)) {
+            DrawRectangleRec(rectangle, DARKGRAY);
+        }
+    }
+}
+
+void draw_optimised_rectangles() {
+    Rectangle *optimised = malloc(sizeof(Rectangle) * RECT_COUNT);
+
+    optimise_rectangles(rectangles, optimised);
 
     Rectangle rectangle;
     for (int i = 0; i < RECT_COUNT; i++) {
         if (rect_valid(rectangle = optimised[i]))
             DrawRectangleLinesEx(rectangle, 2, GREEN);
     }
+
     free(optimised);
 }
 
-int draw() {
+int draw(int *mode) {
+
     BeginDrawing();
     ClearBackground(LIGHTGRAY);
 
@@ -116,15 +123,19 @@ int draw() {
     draw_rectangles();
     draw_optimised_rectangles();
 
+    int gridx = (int) floor(GetMouseX() / TILESIZE);
+    int gridy = (int) floor(GetMouseY() / TILESIZE);
+
+    int rect_index = gridx + gridy*GRID_H;
+
+    Rectangle rectangle = (Rectangle){gridx * TILESIZE, gridy * TILESIZE, TILESIZE, TILESIZE};
+
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+       *mode = !rect_valid(rectangles[rect_index]);
+    }
+
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        int gridx = (int) floor(GetMouseX() / TILESIZE);
-        int gridy = (int) floor(GetMouseY() / TILESIZE);
-
-        Rectangle rectangle = (Rectangle){gridx * TILESIZE, gridy * TILESIZE, TILESIZE, TILESIZE};
-
-        // keep rectangles in order so that larger y and x are more right / left
-        int rect_index = gridx + gridy*GRID_H;
-        rectangles[rect_index] = rectangle;
+        rectangles[rect_index] = *mode ? rectangle : EMPTY_RECT;
     }
 
     EndDrawing();
@@ -138,8 +149,9 @@ int main() {
         rectangles[i] = (Rectangle){0, 0, 0, 0};
     }
 
+    int mode = 0;
     while(!WindowShouldClose()) {
-        draw();
+        draw(&mode);
     }
 
     CloseWindow();
