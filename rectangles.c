@@ -155,8 +155,6 @@ int draw(int *mode) {
            % (sizeof(RECTANGLE_TYPES)/sizeof(Rectangle));
     }
 
-    printf("mode is [%d]\n", *mode);
-
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
         Rectangle rectangle = RECTANGLE_TYPES[*mode];
         rectangle.x += gridx * TILESIZE;
