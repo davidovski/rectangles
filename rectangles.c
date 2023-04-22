@@ -12,9 +12,16 @@
 #define GRID_H (int) (SCREEN_W / TILESIZE);
 #define GRID_W (int) (SCREEN_H / TILESIZE);
 
-const Rectangle EMPTY_RECT = (Rectangle) {0, 0, 0, 0};
-
 Rectangle rectangles[RECT_COUNT];
+
+Rectangle RECTANGLE_TYPES[] = {
+    (Rectangle){0, 0, 0, 0},
+    (Rectangle){0, 0, TILESIZE, TILESIZE},
+    (Rectangle){0, 0, TILESIZE/2.0, TILESIZE},
+    (Rectangle){0, 0, TILESIZE, TILESIZE/2.0},
+    (Rectangle){TILESIZE/2.0, 0, TILESIZE/2.0, TILESIZE},
+    (Rectangle){0, TILESIZE/2.0, TILESIZE, TILESIZE/2.0},
+};
 
 void draw_grid() {
     // vertical lines
@@ -31,7 +38,20 @@ int rect_valid(Rectangle rect) {
     return rect.width || rect.height;
 }
 
+int rect_type(Rectangle rect) {
+    if (!rect_valid(rect))
+        return 0;
 
+    if (rect.width == TILESIZE / 2.0) {
+        return (int) rect.x % TILESIZE == 0 ? 2 : 4;
+    }
+
+    if (rect.height == TILESIZE / 2.0) {
+        return (int) rect.y % TILESIZE == 0 ? 3 : 5;
+    }
+
+    return 1;
+}
 
 int rects_touch_y(Rectangle rect_a, Rectangle rect_b) {
     return rect_a.x == rect_b.x && rect_a.width == rect_b.width &&
@@ -131,11 +151,17 @@ int draw(int *mode) {
     Rectangle rectangle = (Rectangle){gridx * TILESIZE, gridy * TILESIZE, TILESIZE, TILESIZE};
 
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-       *mode = !rect_valid(rectangles[rect_index]);
+       *mode = (rect_type(rectangles[rect_index]) + 1) 
+           % (sizeof(RECTANGLE_TYPES)/sizeof(Rectangle));
     }
 
+    printf("mode is [%d]\n", *mode);
+
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        rectangles[rect_index] = *mode ? rectangle : EMPTY_RECT;
+        Rectangle rectangle = RECTANGLE_TYPES[*mode];
+        rectangle.x += gridx * TILESIZE;
+        rectangle.y += gridy * TILESIZE;
+        rectangles[rect_index] = rectangle;
     }
 
     EndDrawing();
